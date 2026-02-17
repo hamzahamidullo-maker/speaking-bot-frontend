@@ -3,7 +3,7 @@ tg.ready();
 tg.expand();
 
 // Config — change this to your backend URL
-const API_BASE = "https://your-backend.railway.app";
+const API_BASE = "https://speaking-bot-frontend.vercel.app/";
 
 // State
 let selectedGender = null;
