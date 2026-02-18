@@ -22,27 +22,31 @@ function showScreen(id) {
   document.getElementById(id).classList.add("active");
 }
 
-function goBack(screenId) {
-  showScreen(screenId);
-}
-
 function selectGender(gender) {
   selectedGender = gender;
-  const avatar = document.getElementById("callAvatar");
-  avatar.textContent = gender === "female" ? "👩" : "👨";
-  showScreen("levelScreen");
+  document.getElementById("avatarEmoji").textContent = gender === "female" ? "👩" : "👨";
+  // highlight selected
+  document.querySelectorAll(".gender-btn").forEach(b => b.style.opacity = "0.5");
+  document.querySelector(`.gender-btn.${gender}`).style.opacity = "1";
+  document.querySelector(`.gender-btn.${gender}`).style.borderColor = gender === "male" ? "#6366f1" : "#ec4899";
 }
 
 async function selectLevel(level) {
+  if (!selectedGender) {
+    selectedGender = "male";
+    document.getElementById("avatarEmoji").textContent = "👨";
+  }
   selectedLevel = level;
-  const badge = document.getElementById("callLevelBadge");
-  const colors = { beginner: "#6af7c8", intermediate: "#7c6af7", advanced: "#f76a8a" };
-  badge.textContent = level.charAt(0).toUpperCase() + level.slice(1);
-  badge.style.color = colors[level];
-  badge.style.border = `1px solid ${colors[level]}`;
-  badge.style.background = colors[level] + "18";
+
+  const colors = { beginner: "#34d399", intermediate: "#818cf8", advanced: "#f472b6" };
+  const tag = document.getElementById("callLevelTag");
+  tag.textContent = level.charAt(0).toUpperCase() + level.slice(1);
+  tag.style.color = colors[level];
+  tag.style.borderColor = colors[level];
+
   showScreen("callScreen");
   startTimer();
+  setAiStatus("Connecting...");
 
   try {
     const res = await fetch(`${API_BASE}/session/start`, {
@@ -52,10 +56,12 @@ async function selectLevel(level) {
     });
     const data = await res.json();
     sessionId = data.session_id;
-    addAIMessage(data.message);
+    showLastMsg(data.message);
+    setAiStatus("Listening...");
     if (data.audio_hex) playAudioHex(data.audio_hex);
   } catch (err) {
-    addAIMessage("Hello! I am your speaking partner. Let us practice English together!");
+    showLastMsg("Hello! I am your speaking partner. Let us practice English together!");
+    setAiStatus("Listening...");
   }
 }
 
@@ -65,17 +71,14 @@ function startTimer() {
     secondsElapsed++;
     const m = Math.floor(secondsElapsed / 60);
     const s = secondsElapsed % 60;
-    document.getElementById("statTimer").textContent = `${m}:${s.toString().padStart(2, "0")}`;
+    document.getElementById("callDuration").textContent = `${m}:${s.toString().padStart(2, "0")}`;
   }, 1000);
 }
 
 async function toggleRecording() {
   if (isProcessing) return;
-  if (isRecording) {
-    stopRecording();
-  } else {
-    await startRecording();
-  }
+  if (isRecording) stopRecording();
+  else await startRecording();
 }
 
 async function startRecording() {
@@ -89,10 +92,10 @@ async function startRecording() {
     isRecording = true;
     document.getElementById("btnMic").classList.add("recording");
     document.getElementById("btnMic").textContent = "⏹️";
-    document.getElementById("voiceRing").classList.add("recording");
-    document.getElementById("voiceHint").textContent = "Recording... tap to stop";
+    document.getElementById("micPulse").classList.add("recording");
+    setAiStatus("Recording...");
   } catch (err) {
-    alert("Microphone access denied. Please allow microphone and try again.");
+    alert("Microphone access denied!");
   }
 }
 
@@ -104,8 +107,8 @@ function stopRecording() {
   isRecording = false;
   document.getElementById("btnMic").classList.remove("recording");
   document.getElementById("btnMic").textContent = "🎤";
-  document.getElementById("voiceRing").classList.remove("recording");
-  document.getElementById("voiceHint").textContent = "Processing...";
+  document.getElementById("micPulse").classList.remove("recording");
+  setAiStatus("Processing...");
 }
 
 async function sendVoiceMessage() {
@@ -117,8 +120,7 @@ async function sendVoiceMessage() {
 async function sendAudio(audioBlob) {
   if (!sessionId || isProcessing) return;
   isProcessing = true;
-  setInputsDisabled(true);
-  const processingId = addProcessingIndicator();
+  document.getElementById("btnMic").disabled = true;
 
   const formData = new FormData();
   formData.append("session_id", sessionId);
@@ -127,22 +129,25 @@ async function sendAudio(audioBlob) {
   try {
     const res = await fetch(`${API_BASE}/session/voice`, { method: "POST", body: formData });
     const data = await res.json();
-    removeProcessingIndicator(processingId);
-    if (data.user_text) addUserMessage(data.user_text);
-    if (data.ai_response) {
-      const { mainText, feedbackText } = parseResponse(data.ai_response);
-      addAIMessage(mainText);
-      if (feedbackText) addFeedbackMessage(feedbackText);
-    }
-    if (data.audio_hex) playAudioHex(data.audio_hex);
-    if (data.stats) updateStats(data.stats);
+
+    if (data.user_text) showLastMsg(`You: ${data.user_text}`, true);
+
+    setTimeout(() => {
+      if (data.ai_response) {
+        const { mainText, feedbackText } = parseResponse(data.ai_response);
+        showLastMsg(mainText);
+        if (feedbackText) showFeedback(feedbackText);
+      }
+      if (data.audio_hex) playAudioHex(data.audio_hex);
+      if (data.stats) updateStats(data.stats);
+    }, 300);
+
   } catch (err) {
-    removeProcessingIndicator(processingId);
-    addAIMessage("Sorry, I could not process that. Please try again.");
+    showLastMsg("Sorry, could not process. Try again.");
   } finally {
     isProcessing = false;
-    setInputsDisabled(false);
-    document.getElementById("voiceHint").textContent = "Tap mic to record your message";
+    document.getElementById("btnMic").disabled = false;
+    setAiStatus("Listening...");
   }
 }
 
@@ -150,12 +155,11 @@ async function sendTextMessage() {
   const input = document.getElementById("textInput");
   const text = input.value.trim();
   if (!text || !sessionId || isProcessing) return;
-
   input.value = "";
   isProcessing = true;
-  setInputsDisabled(true);
-  addUserMessage(text);
-  const processingId = addProcessingIndicator();
+  document.getElementById("btnMic").disabled = true;
+  showLastMsg(`You: ${text}`, true);
+  setAiStatus("Thinking...");
 
   try {
     const res = await fetch(`${API_BASE}/session/text`, {
@@ -164,18 +168,17 @@ async function sendTextMessage() {
       body: JSON.stringify({ session_id: sessionId, message: text })
     });
     const data = await res.json();
-    removeProcessingIndicator(processingId);
     const { mainText, feedbackText } = parseResponse(data.ai_response);
-    addAIMessage(mainText);
-    if (feedbackText) addFeedbackMessage(feedbackText);
+    showLastMsg(mainText);
+    if (feedbackText) showFeedback(feedbackText);
     if (data.audio_hex) playAudioHex(data.audio_hex);
     if (data.stats) updateStats(data.stats);
   } catch (err) {
-    removeProcessingIndicator(processingId);
-    addAIMessage("Sorry, something went wrong. Please try again.");
+    showLastMsg("Sorry, something went wrong.");
   } finally {
     isProcessing = false;
-    setInputsDisabled(false);
+    document.getElementById("btnMic").disabled = false;
+    setAiStatus("Listening...");
   }
 }
 
@@ -185,16 +188,21 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+function toggleTextInput() {
+  const row = document.getElementById("textRow");
+  row.style.display = row.style.display === "none" ? "flex" : "none";
+  if (row.style.display === "flex") document.getElementById("textInput").focus();
+}
+
 async function endSession() {
   clearInterval(timerInterval);
   document.getElementById("fstatExchanges").textContent = document.getElementById("statExchanges").textContent;
   document.getElementById("fstatWords").textContent = document.getElementById("statWords").textContent;
   document.getElementById("fstatScore").textContent = document.getElementById("statScore").textContent;
-  document.getElementById("fstatDuration").textContent = document.getElementById("statTimer").textContent;
+  document.getElementById("fstatDuration").textContent = document.getElementById("callDuration").textContent;
   showScreen("summaryScreen");
 
   if (!sessionId) return;
-
   try {
     const res = await fetch(`${API_BASE}/session/end`, {
       method: "POST",
@@ -202,12 +210,12 @@ async function endSession() {
       body: JSON.stringify({ session_id: sessionId })
     });
     const data = await res.json();
-    const summaryCard = document.getElementById("summaryContent");
-    summaryCard.style.justifyContent = "flex-start";
-    summaryCard.style.alignItems = "flex-start";
-    summaryCard.textContent = data.summary;
+    const card = document.getElementById("summaryContent");
+    card.style.justifyContent = "flex-start";
+    card.style.alignItems = "flex-start";
+    card.textContent = data.summary;
   } catch (err) {
-    document.getElementById("summaryContent").textContent = "Could not load summary. Great session though!";
+    document.getElementById("summaryContent").textContent = "Great session! Keep practicing!";
   }
   sessionId = null;
 }
@@ -217,66 +225,30 @@ function restartApp() {
   selectedLevel = null;
   sessionId = null;
   secondsElapsed = 0;
-  document.getElementById("chatContainer").innerHTML = "";
   document.getElementById("summaryContent").innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+  document.getElementById("summaryContent").style.justifyContent = "center";
+  document.getElementById("feedbackBox").style.display = "none";
+  document.getElementById("callDuration").textContent = "0:00";
+  document.querySelectorAll(".gender-btn").forEach(b => { b.style.opacity = "1"; b.style.borderColor = ""; });
   updateStats({ exchanges: 0, total_words: 0, avg_score: null });
-  document.getElementById("statTimer").textContent = "0:00";
-  showScreen("genderScreen");
+  showScreen("setupScreen");
 }
 
-function addAIMessage(text) {
-  const container = document.getElementById("chatContainer");
-  const row = document.createElement("div");
-  row.className = "msg-row ai";
-  row.innerHTML = `<div class="msg-avatar ai-avatar">🤖</div><div class="msg-bubble">${escapeHtml(text)}</div>`;
-  container.appendChild(row);
-  scrollToBottom();
+function showLastMsg(text, isUser = false) {
+  const el = document.getElementById("lastMsg");
+  el.style.color = isUser ? "#818cf8" : "#ccc";
+  el.textContent = text;
 }
 
-function addUserMessage(text) {
-  const container = document.getElementById("chatContainer");
-  const row = document.createElement("div");
-  row.className = "msg-row user";
-  row.innerHTML = `<div class="msg-avatar user-avatar">👤</div><div class="msg-bubble">${escapeHtml(text)}</div>`;
-  container.appendChild(row);
-  scrollToBottom();
+function showFeedback(text) {
+  const box = document.getElementById("feedbackBox");
+  document.getElementById("feedbackText").textContent = text;
+  box.style.display = "block";
+  setTimeout(() => { box.style.display = "none"; }, 8000);
 }
 
-function addFeedbackMessage(text) {
-  const container = document.getElementById("chatContainer");
-  const div = document.createElement("div");
-  div.className = "feedback-bubble";
-  div.textContent = text;
-  container.appendChild(div);
-  scrollToBottom();
-}
-
-function addProcessingIndicator() {
-  const container = document.getElementById("chatContainer");
-  const id = "proc_" + Date.now();
-  const row = document.createElement("div");
-  row.className = "processing-row";
-  row.id = id;
-  row.innerHTML = `
-    <div class="msg-avatar ai-avatar">🤖</div>
-    <div class="processing-bubble">
-      <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-      <span>Thinking...</span>
-    </div>`;
-  container.appendChild(row);
-  scrollToBottom();
-  return id;
-}
-
-function removeProcessingIndicator(id) {
-  const el = document.getElementById(id);
-  if (el) el.remove();
-}
-
-function setInputsDisabled(disabled) {
-  document.getElementById("btnMic").disabled = disabled;
-  document.getElementById("btnSend").disabled = disabled;
-  document.getElementById("textInput").disabled = disabled;
+function setAiStatus(status) {
+  document.getElementById("aiStatus").textContent = status;
 }
 
 function updateStats(stats) {
@@ -286,19 +258,6 @@ function updateStats(stats) {
     document.getElementById("statWords").textContent = stats.total_words;
   if (stats.avg_score !== null && stats.avg_score !== undefined)
     document.getElementById("statScore").textContent = stats.avg_score + "/10";
-}
-
-function scrollToBottom() {
-  const c = document.getElementById("chatContainer");
-  c.scrollTop = c.scrollHeight;
-}
-
-function escapeHtml(text) {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\n/g, "<br>");
 }
 
 function parseResponse(text) {
@@ -316,18 +275,17 @@ function playAudioHex(hex) {
     const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
     const blob = new Blob([bytes], { type: "audio/wav" });
     const url = URL.createObjectURL(blob);
-    if (currentAudio) {
-      currentAudio.pause();
-      URL.revokeObjectURL(currentAudio.src);
-    }
+    if (currentAudio) { currentAudio.pause(); URL.revokeObjectURL(currentAudio.src); }
     currentAudio = new Audio(url);
     currentAudio.play().catch(() => {});
-    document.getElementById("callStatus").textContent = "● Speaking...";
+    setAiStatus("Speaking...");
+    document.getElementById("avatarRings").classList.add("speaking");
     currentAudio.onended = () => {
-      document.getElementById("callStatus").textContent = "● Active";
+      setAiStatus("Listening...");
+      document.getElementById("avatarRings").classList.remove("speaking");
       URL.revokeObjectURL(url);
     };
   } catch (err) {
-    console.error("Audio play error:", err);
+    console.error("Audio error:", err);
   }
 }
