@@ -4,173 +4,170 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Speaking Partner</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- SCREEN 1: Choose Voice Gender -->
-  <div id="genderScreen" class="screen active">
-    <div class="screen-inner">
-      <div class="logo-area">
-        <div class="logo-icon">🗣️</div>
-        <h1 class="logo-title">Speaking <span>Partner</span></h1>
-        <p class="logo-sub">AI-powered English coach</p>
-      </div>
-      <p class="section-label">Choose AI Voice</p>
-      <div class="gender-cards">
-        <div class="gender-card male" onclick="selectGender('male')">
-          <div class="gender-icon">👨</div>
-          <div class="gender-name">Male Voice</div>
-          <div class="gender-desc">Deep, clear & natural</div>
+  <!-- SCREEN 1: Level & Voice Select -->
+  <div id="setupScreen" class="screen active">
+    <div class="setup-wrap">
+      <div class="app-logo">🗣️</div>
+      <h1 class="app-title">Speaking Partner</h1>
+      <p class="app-sub">AI-powered English coach</p>
+
+      <div class="section-title">AI Voice</div>
+      <div class="gender-row">
+        <div class="gender-btn male" onclick="selectGender('male')">
+          <span class="g-icon">👨</span>
+          <span class="g-label">Male</span>
         </div>
-        <div class="gender-card female" onclick="selectGender('female')">
-          <div class="gender-icon">👩</div>
-          <div class="gender-name">Female Voice</div>
-          <div class="gender-desc">Warm, friendly & clear</div>
+        <div class="gender-btn female" onclick="selectGender('female')">
+          <span class="g-icon">👩</span>
+          <span class="g-label">Female</span>
+        </div>
+      </div>
+
+      <div class="section-title">Your Level</div>
+      <div class="level-list">
+        <div class="level-item" onclick="selectLevel('beginner')">
+          <div class="level-left">
+            <span class="level-emoji">🌱</span>
+            <div>
+              <div class="level-name beginner-c">Beginner</div>
+              <div class="level-sub">A1 — A2 · Simple topics</div>
+            </div>
+          </div>
+          <span class="level-arrow">›</span>
+        </div>
+        <div class="level-item" onclick="selectLevel('intermediate')">
+          <div class="level-left">
+            <span class="level-emoji">🚀</span>
+            <div>
+              <div class="level-name intermediate-c">Intermediate</div>
+              <div class="level-sub">B1 — B2 · Everyday topics</div>
+            </div>
+          </div>
+          <span class="level-arrow">›</span>
+        </div>
+        <div class="level-item" onclick="selectLevel('advanced')">
+          <div class="level-left">
+            <span class="level-emoji">🎯</span>
+            <div>
+              <div class="level-name advanced-c">Advanced</div>
+              <div class="level-sub">C1 — C2 · Complex debates</div>
+            </div>
+          </div>
+          <span class="level-arrow">›</span>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- SCREEN 2: Choose Level -->
-  <div id="levelScreen" class="screen">
-    <div class="screen-inner">
-      <button class="btn-back" onclick="goBack('genderScreen')">← Back</button>
-      <p class="section-label">Choose Your Level</p>
-      <div class="level-cards">
-        <div class="level-card beginner" onclick="selectLevel('beginner')">
-          <div class="level-top">
-            <div class="level-badge">🌱</div>
-            <div>
-              <div class="level-name">Beginner</div>
-              <div class="level-range">A1 — A2</div>
-            </div>
-          </div>
-          <div class="level-desc">Simple words, short sentences. Perfect for starting your English journey.</div>
-          <div class="level-tags">
-            <span class="tag">Family</span>
-            <span class="tag">Food</span>
-            <span class="tag">Daily life</span>
-          </div>
-        </div>
-        <div class="level-card intermediate" onclick="selectLevel('intermediate')">
-          <div class="level-top">
-            <div class="level-badge">🚀</div>
-            <div>
-              <div class="level-name">Intermediate</div>
-              <div class="level-range">B1 — B2</div>
-            </div>
-          </div>
-          <div class="level-desc">Everyday topics, idioms, and opinions. Build real fluency.</div>
-          <div class="level-tags">
-            <span class="tag">Travel</span>
-            <span class="tag">Work</span>
-            <span class="tag">Culture</span>
-          </div>
-        </div>
-        <div class="level-card advanced" onclick="selectLevel('advanced')">
-          <div class="level-top">
-            <div class="level-badge">🎯</div>
-            <div>
-              <div class="level-name">Advanced</div>
-              <div class="level-range">C1 — C2</div>
-            </div>
-          </div>
-          <div class="level-desc">Complex debates, nuanced vocabulary. Master native-level English.</div>
-          <div class="level-tags">
-            <span class="tag">Philosophy</span>
-            <span class="tag">Politics</span>
-            <span class="tag">Science</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN 3: Call / Chat -->
+  <!-- SCREEN 2: Live Call -->
   <div id="callScreen" class="screen">
-    <div class="call-header">
-      <div class="call-info">
-        <div class="call-avatar" id="callAvatar">🤖</div>
-        <div>
-          <div class="call-name">AI Partner</div>
-          <div class="call-status" id="callStatus">● Active</div>
+    <div class="call-wrap">
+
+      <!-- Top bar -->
+      <div class="call-topbar">
+        <div class="call-duration" id="callDuration">0:00</div>
+        <div class="call-label">English Practice</div>
+        <div class="call-level-tag" id="callLevelTag">—</div>
+      </div>
+
+      <!-- AI Avatar area -->
+      <div class="avatar-area">
+        <div class="avatar-rings" id="avatarRings">
+          <div class="ring ring1"></div>
+          <div class="ring ring2"></div>
+          <div class="ring ring3"></div>
+          <div class="avatar-circle" id="avatarCircle">
+            <span id="avatarEmoji">🤖</span>
+          </div>
+        </div>
+        <div class="ai-name">AI Partner</div>
+        <div class="ai-status" id="aiStatus">Listening...</div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-num" id="statExchanges">0</div>
+          <div class="stat-lbl">Exchanges</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" id="statWords">0</div>
+          <div class="stat-lbl">Words</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" id="statScore">—</div>
+          <div class="stat-lbl">Score</div>
         </div>
       </div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <span class="call-level-badge" id="callLevelBadge">—</span>
-        <button class="btn-end" onclick="endSession()">End</button>
-      </div>
-    </div>
 
-    <!-- Stats bar -->
-    <div class="stats-bar">
-      <div class="stat-item">
-        <div class="stat-value" id="statExchanges">0</div>
-        <div class="stat-label">Exchanges</div>
+      <!-- Last message -->
+      <div class="last-msg-box" id="lastMsgBox">
+        <div class="last-msg" id="lastMsg">Waiting for AI...</div>
       </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <div class="stat-value" id="statWords">0</div>
-        <div class="stat-label">Words</div>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <div class="stat-value" id="statScore">—</div>
-        <div class="stat-label">Avg Score</div>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <div class="stat-value" id="statTimer">0:00</div>
-        <div class="stat-label">Duration</div>
-      </div>
-    </div>
 
-    <div class="chat-container" id="chatContainer"></div>
+      <!-- Feedback box -->
+      <div class="feedback-box" id="feedbackBox" style="display:none">
+        <div class="feedback-text" id="feedbackText"></div>
+      </div>
 
-    <div class="voice-controls">
-      <div class="voice-center">
-        <div class="voice-ring" id="voiceRing">
-          <button class="btn-mic" id="btnMic" onclick="toggleRecording()">🎤</button>
+      <!-- Controls -->
+      <div class="call-controls">
+        <button class="ctrl-btn end-btn" onclick="endSession()">
+          <span>📵</span>
+          <span class="ctrl-lbl">End</span>
+        </button>
+
+        <div class="mic-wrap" id="micWrap">
+          <div class="mic-pulse" id="micPulse"></div>
+          <button class="mic-btn" id="btnMic" onclick="toggleRecording()">🎤</button>
         </div>
-        <div class="voice-hint" id="voiceHint">Hold to record, release to send</div>
-        <div class="text-input-row">
-          <input type="text" class="text-input" id="textInput" placeholder="Or type your message..." />
-          <button class="btn-send" id="btnSend" onclick="sendTextMessage()">➤</button>
-        </div>
+
+        <button class="ctrl-btn text-btn" onclick="toggleTextInput()">
+          <span>⌨️</span>
+          <span class="ctrl-lbl">Type</span>
+        </button>
       </div>
+
+      <!-- Text input (hidden by default) -->
+      <div class="text-row" id="textRow" style="display:none">
+        <input type="text" class="text-inp" id="textInput" placeholder="Type your message..." />
+        <button class="send-btn" onclick="sendTextMessage()">➤</button>
+      </div>
+
     </div>
   </div>
 
-  <!-- SCREEN 4: Summary -->
+  <!-- SCREEN 3: Summary -->
   <div id="summaryScreen" class="screen">
-    <div class="screen-inner">
-      <div class="summary-header">
-        <span class="summary-icon">🏆</span>
+    <div class="summary-wrap">
+      <div class="summary-top">
+        <div class="trophy">🏆</div>
         <h2 class="summary-title">Session Complete!</h2>
-        <p class="summary-sub">Here is your performance report</p>
+        <p class="summary-sub">Your performance report</p>
       </div>
 
-      <!-- Final stats -->
-      <div class="final-stats-grid">
-        <div class="final-stat-card">
-          <div class="fstat-value" id="fstatExchanges">0</div>
-          <div class="fstat-label">Exchanges</div>
+      <div class="final-stats">
+        <div class="fstat">
+          <div class="fstat-num" id="fstatExchanges">0</div>
+          <div class="fstat-lbl">Exchanges</div>
         </div>
-        <div class="final-stat-card">
-          <div class="fstat-value" id="fstatWords">0</div>
-          <div class="fstat-label">Words Spoken</div>
+        <div class="fstat">
+          <div class="fstat-num" id="fstatWords">0</div>
+          <div class="fstat-lbl">Words</div>
         </div>
-        <div class="final-stat-card accent">
-          <div class="fstat-value" id="fstatScore">—</div>
-          <div class="fstat-label">Final Score</div>
+        <div class="fstat accent">
+          <div class="fstat-num" id="fstatScore">—</div>
+          <div class="fstat-lbl">Avg Score</div>
         </div>
-        <div class="final-stat-card">
-          <div class="fstat-value" id="fstatDuration">0:00</div>
-          <div class="fstat-label">Duration</div>
+        <div class="fstat">
+          <div class="fstat-num" id="fstatDuration">0:00</div>
+          <div class="fstat-lbl">Duration</div>
         </div>
       </div>
 
@@ -178,7 +175,7 @@
         <div class="loading-dots"><span></span><span></span><span></span></div>
       </div>
 
-      <button class="btn-restart" onclick="restartApp()">🔄 Start New Session</button>
+      <button class="restart-btn" onclick="restartApp()">🔄 New Session</button>
     </div>
   </div>
 
