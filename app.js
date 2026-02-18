@@ -2,10 +2,8 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
-// Config — change this to your backend URL
-const API_BASE = "https://speaking-bot-frontend.vercel.app/";
+const API_BASE = "https://speaking-backend-production.up.railway.app";
 
-// State
 let selectedGender = null;
 let selectedLevel = null;
 let sessionId = null;
@@ -19,7 +17,6 @@ let currentAudio = null;
 
 const userId = tg.initDataUnsafe?.user?.id?.toString() || "test_user";
 
-// ---- NAVIGATION ----
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
@@ -29,7 +26,6 @@ function goBack(screenId) {
   showScreen(screenId);
 }
 
-// ---- GENDER SELECTION ----
 function selectGender(gender) {
   selectedGender = gender;
   const avatar = document.getElementById("callAvatar");
@@ -37,18 +33,14 @@ function selectGender(gender) {
   showScreen("levelScreen");
 }
 
-// ---- LEVEL SELECTION ----
 async function selectLevel(level) {
   selectedLevel = level;
-
-  // Update UI
   const badge = document.getElementById("callLevelBadge");
   const colors = { beginner: "#6af7c8", intermediate: "#7c6af7", advanced: "#f76a8a" };
   badge.textContent = level.charAt(0).toUpperCase() + level.slice(1);
   badge.style.color = colors[level];
   badge.style.border = `1px solid ${colors[level]}`;
   badge.style.background = colors[level] + "18";
-
   showScreen("callScreen");
   startTimer();
 
@@ -67,7 +59,6 @@ async function selectLevel(level) {
   }
 }
 
-// ---- TIMER ----
 function startTimer() {
   secondsElapsed = 0;
   timerInterval = setInterval(() => {
@@ -78,7 +69,6 @@ function startTimer() {
   }, 1000);
 }
 
-// ---- RECORDING ----
 async function toggleRecording() {
   if (isProcessing) return;
   if (isRecording) {
@@ -128,7 +118,6 @@ async function sendAudio(audioBlob) {
   if (!sessionId || isProcessing) return;
   isProcessing = true;
   setInputsDisabled(true);
-
   const processingId = addProcessingIndicator();
 
   const formData = new FormData();
@@ -138,25 +127,15 @@ async function sendAudio(audioBlob) {
   try {
     const res = await fetch(`${API_BASE}/session/voice`, { method: "POST", body: formData });
     const data = await res.json();
-
     removeProcessingIndicator(processingId);
-
-    // Show user text
     if (data.user_text) addUserMessage(data.user_text);
-
-    // Parse and show AI response
     if (data.ai_response) {
       const { mainText, feedbackText } = parseResponse(data.ai_response);
       addAIMessage(mainText);
       if (feedbackText) addFeedbackMessage(feedbackText);
     }
-
-    // Play audio
     if (data.audio_hex) playAudioHex(data.audio_hex);
-
-    // Update stats
     if (data.stats) updateStats(data.stats);
-
   } catch (err) {
     removeProcessingIndicator(processingId);
     addAIMessage("Sorry, I could not process that. Please try again.");
@@ -167,7 +146,6 @@ async function sendAudio(audioBlob) {
   }
 }
 
-// ---- TEXT MESSAGE ----
 async function sendTextMessage() {
   const input = document.getElementById("textInput");
   const text = input.value.trim();
@@ -177,7 +155,6 @@ async function sendTextMessage() {
   isProcessing = true;
   setInputsDisabled(true);
   addUserMessage(text);
-
   const processingId = addProcessingIndicator();
 
   try {
@@ -187,15 +164,12 @@ async function sendTextMessage() {
       body: JSON.stringify({ session_id: sessionId, message: text })
     });
     const data = await res.json();
-
     removeProcessingIndicator(processingId);
-
     const { mainText, feedbackText } = parseResponse(data.ai_response);
     addAIMessage(mainText);
     if (feedbackText) addFeedbackMessage(feedbackText);
     if (data.audio_hex) playAudioHex(data.audio_hex);
     if (data.stats) updateStats(data.stats);
-
   } catch (err) {
     removeProcessingIndicator(processingId);
     addAIMessage("Sorry, something went wrong. Please try again.");
@@ -205,28 +179,18 @@ async function sendTextMessage() {
   }
 }
 
-// Enter key to send
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("textInput").addEventListener("keydown", e => {
     if (e.key === "Enter") sendTextMessage();
   });
 });
 
-// ---- END SESSION ----
 async function endSession() {
   clearInterval(timerInterval);
-
-  // Save final stats for summary
-  const finalExchanges = document.getElementById("statExchanges").textContent;
-  const finalWords = document.getElementById("statWords").textContent;
-  const finalScore = document.getElementById("statScore").textContent;
-  const finalDuration = document.getElementById("statTimer").textContent;
-
-  document.getElementById("fstatExchanges").textContent = finalExchanges;
-  document.getElementById("fstatWords").textContent = finalWords;
-  document.getElementById("fstatScore").textContent = finalScore;
-  document.getElementById("fstatDuration").textContent = finalDuration;
-
+  document.getElementById("fstatExchanges").textContent = document.getElementById("statExchanges").textContent;
+  document.getElementById("fstatWords").textContent = document.getElementById("statWords").textContent;
+  document.getElementById("fstatScore").textContent = document.getElementById("statScore").textContent;
+  document.getElementById("fstatDuration").textContent = document.getElementById("statTimer").textContent;
   showScreen("summaryScreen");
 
   if (!sessionId) return;
@@ -245,11 +209,9 @@ async function endSession() {
   } catch (err) {
     document.getElementById("summaryContent").textContent = "Could not load summary. Great session though!";
   }
-
   sessionId = null;
 }
 
-// ---- RESTART ----
 function restartApp() {
   selectedGender = null;
   selectedLevel = null;
@@ -262,15 +224,11 @@ function restartApp() {
   showScreen("genderScreen");
 }
 
-// ---- UI HELPERS ----
 function addAIMessage(text) {
   const container = document.getElementById("chatContainer");
   const row = document.createElement("div");
   row.className = "msg-row ai";
-  row.innerHTML = `
-    <div class="msg-avatar ai-avatar">🤖</div>
-    <div class="msg-bubble">${escapeHtml(text)}</div>
-  `;
+  row.innerHTML = `<div class="msg-avatar ai-avatar">🤖</div><div class="msg-bubble">${escapeHtml(text)}</div>`;
   container.appendChild(row);
   scrollToBottom();
 }
@@ -279,10 +237,7 @@ function addUserMessage(text) {
   const container = document.getElementById("chatContainer");
   const row = document.createElement("div");
   row.className = "msg-row user";
-  row.innerHTML = `
-    <div class="msg-avatar user-avatar">👤</div>
-    <div class="msg-bubble">${escapeHtml(text)}</div>
-  `;
+  row.innerHTML = `<div class="msg-avatar user-avatar">👤</div><div class="msg-bubble">${escapeHtml(text)}</div>`;
   container.appendChild(row);
   scrollToBottom();
 }
@@ -305,12 +260,9 @@ function addProcessingIndicator() {
   row.innerHTML = `
     <div class="msg-avatar ai-avatar">🤖</div>
     <div class="processing-bubble">
-      <div class="dots">
-        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-      </div>
+      <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       <span>Thinking...</span>
-    </div>
-  `;
+    </div>`;
   container.appendChild(row);
   scrollToBottom();
   return id;
@@ -353,14 +305,12 @@ function parseResponse(text) {
   if (text.includes("FEEDBACK_START")) {
     const parts = text.split("FEEDBACK_START");
     const mainText = parts[0].trim();
-    const feedbackRaw = parts[1] || "";
-    const feedbackText = feedbackRaw.replace("FEEDBACK_END", "").trim();
+    const feedbackText = (parts[1] || "").replace("FEEDBACK_END", "").trim();
     return { mainText, feedbackText };
   }
   return { mainText: text, feedbackText: null };
 }
 
-// ---- AUDIO PLAYBACK ----
 function playAudioHex(hex) {
   try {
     const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
